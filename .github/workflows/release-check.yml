@@ -1,0 +1,56 @@
+name: Check for New ComfyUI Releases
+
+on:
+  schedule:
+    - cron: "0 9 * * *" # Daily at 09:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      needs_build: ${{ steps.check.outputs.needs_build }}
+
+    steps:
+      - name: Get Latest ComfyUI Release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(gh api repos/Comfy-Org/ComfyUI/releases/latest --jq '.tag_name')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Latest ComfyUI release: ${VERSION}"
+
+      - name: Log In to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check If Image Tag Already Exists
+        id: check
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          IMAGE="ghcr.io/reclyptor/comfyui:${VERSION}"
+          if docker manifest inspect "${IMAGE}" > /dev/null 2>&1; then
+            echo "needs_build=false" >> "$GITHUB_OUTPUT"
+            echo "${IMAGE} already exists — no build needed."
+          else
+            echo "needs_build=true" >> "$GITHUB_OUTPUT"
+            echo "${IMAGE} not found — triggering build."
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.needs_build == 'true'
+    uses: ./.github/workflows/build.yml
+    with:
+      comfyui_version: ${{ needs.check.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
