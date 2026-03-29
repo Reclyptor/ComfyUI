@@ -1,5 +1,5 @@
 # Official NVIDIA CUDA base — no community layers
-FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+FROM nvidia/cuda:13.0.2-cudnn-runtime-ubuntu22.04
 
 ARG COMFYUI_VERSION
 LABEL org.opencontainers.image.title="ComfyUI" \
@@ -31,7 +31,7 @@ RUN pip3 install --no-cache-dir \
     torch \
     torchvision \
     torchaudio \
-    --index-url https://download.pytorch.org/whl/cu124
+    --index-url https://download.pytorch.org/whl/cu130
 
 # Install ComfyUI dependencies from the cloned repo's own requirements
 RUN pip3 install --no-cache-dir -r requirements.txt
