@@ -36,6 +36,13 @@ RUN pip3 install --no-cache-dir \
 # Install ComfyUI dependencies from the cloned repo's own requirements
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# Install ComfyUI Manager — https://github.com/Comfy-Org/ComfyUI-Manager
+ARG MANAGER_VERSION=main
+RUN git clone --depth 1 --branch ${MANAGER_VERSION} \
+    https://github.com/Comfy-Org/ComfyUI-Manager.git \
+    custom_nodes/ComfyUI-Manager \
+    && pip3 install --no-cache-dir -r custom_nodes/ComfyUI-Manager/requirements.txt
+
 RUN useradd -m -u 1000 comfyui && chown -R comfyui:comfyui /app
 USER comfyui
 
