@@ -36,6 +36,17 @@ RUN pip3 install --no-cache-dir \
 # Install ComfyUI dependencies from the cloned repo's own requirements
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# ComfyUI-MultiGPU's peer-access check dlopens the unversioned libcudart.so,
+# which only ships in the CUDA devel images. Link it against the runtime's
+# versioned library instead of pulling in that much larger base. Without this
+# every cross-device tensor access raises an OSError.
+RUN set -eu; \
+    lib="$(ldconfig -p | awk '/libcudart\.so\.[0-9]+ / {print $NF; exit}')"; \
+    test -n "$lib"; \
+    ln -s "$(basename "$lib")" "$(dirname "$lib")/libcudart.so"; \
+    ldconfig; \
+    python3 -c "import ctypes; ctypes.CDLL('libcudart.so')"
+
 # ComfyUI-Manager is a pip package as of 4.x and must not live in custom_nodes.
 # ComfyUI pins the version it expects, so track that file rather than a pin of
 # our own. Activated by --enable-manager below.
