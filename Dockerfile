@@ -11,10 +11,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# build-essential is a runtime dependency, not just a build one: Triton
+# JIT-compiles its launcher stubs on first use of the fp8 kernels and shells
+# out to a C compiler to do it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     python3-dev \
+    build-essential \
     git \
     libgl1 \
     libglib2.0-0 \
