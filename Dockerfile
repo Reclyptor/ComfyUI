@@ -36,13 +36,16 @@ RUN pip3 install --no-cache-dir \
 # Install ComfyUI dependencies from the cloned repo's own requirements
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+# ComfyUI-Manager is a pip package as of 4.x and must not live in custom_nodes.
+# ComfyUI pins the version it expects, so track that file rather than a pin of
+# our own. Activated by --enable-manager below.
+RUN pip3 install --no-cache-dir -r manager_requirements.txt
+
 # Custom nodes owned by this image. The comfyui StatefulSet mounts a volume
 # over /app/custom_nodes, so its seed step re-copies these on every start —
 # bumping a pin here is what actually rolls them out.
 #
-# Manager pins to a tag; MultiGPU and GGUF publish no tags, so both pin to a
-# commit. `fetch --depth 1 <rev>` accepts either.
-ARG MANAGER_VERSION=4.2.2
+# Neither publishes tags, so both pin to a commit.
 ARG MULTIGPU_VERSION=b51c99a525e9607e43545ee2a8b7694c74a4775a
 ARG GGUF_VERSION=6ea2651e7df66d7585f6ffee804b20e92fb38b8a
 RUN set -eu; \
@@ -52,16 +55,13 @@ RUN set -eu; \
       git -C "custom_nodes/$1" fetch -q --depth 1 origin "$3"; \
       git -C "custom_nodes/$1" checkout -q FETCH_HEAD; \
     }; \
-    pin ComfyUI-Manager  https://github.com/Comfy-Org/ComfyUI-Manager.git  "${MANAGER_VERSION}"; \
     pin ComfyUI-MultiGPU https://github.com/pollockjj/ComfyUI-MultiGPU.git "${MULTIGPU_VERSION}"; \
     pin ComfyUI-GGUF     https://github.com/city96/ComfyUI-GGUF.git        "${GGUF_VERSION}"; \
-    pip3 install --no-cache-dir \
-      -r custom_nodes/ComfyUI-Manager/requirements.txt \
-      -r custom_nodes/ComfyUI-GGUF/requirements.txt
+    pip3 install --no-cache-dir -r custom_nodes/ComfyUI-GGUF/requirements.txt
 
 RUN useradd -m -u 1000 comfyui && chown -R comfyui:comfyui /app
 USER comfyui
 
 EXPOSE 8188
 
-CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188"]
+CMD ["python3", "main.py", "--listen", "0.0.0.0", "--port", "8188", "--enable-manager"]
