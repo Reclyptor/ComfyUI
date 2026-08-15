@@ -74,6 +74,11 @@ RUN set -eu; \
     pin ComfyUI-GGUF     https://github.com/city96/ComfyUI-GGUF.git        "${GGUF_VERSION}"; \
     pip3 install --no-cache-dir -r custom_nodes/ComfyUI-GGUF/requirements.txt
 
+# Owned by this repo rather than pinned upstream. Restores the job history the
+# Media Assets "Generated" tab reads, which ComfyUI holds only in memory — see
+# the module docstring. Seeded onto the volume alongside the nodes above.
+COPY custom_nodes/comfyui-history-rehydrate custom_nodes/comfyui-history-rehydrate
+
 RUN useradd -m -u 1000 comfyui && chown -R comfyui:comfyui /app
 USER comfyui
 
